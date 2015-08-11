@@ -1,0 +1,10 @@
+{
+	"name": "pack_version_check",
+	"description": "A minimal D application.",
+	"copyright": "Copyright © 2015, Steven",
+	"authors": ["Steven"],
+    "libs": ["curl"],
+    "stringImportPaths": ["config"],
+	"dependencies": {
+	}
+}
