@@ -44,12 +44,15 @@ class SimpleLogger: FileLogger
 
 string get_remote_version()
 {
-    return get(get_config!"version_url").idup.strip;
+    return get(get_config!"version_url").strip;
 }
 
 string get_version()
 {
-    return std.file.readText(VERSION_FILE).strip();
+    if(!std.file.exists(VERSION_FILE))
+        return null;
+    
+    return std.file.readText(VERSION_FILE).strip;
 }
 
 void write_version(string newVersion)
@@ -59,10 +62,39 @@ void write_version(string newVersion)
 
 void do_update()
 {
-    info("Checking for updates at ", Clock.currTime);
+    log("<update stuff>");
+    //TODO
 }
 
-void main()
+void update_check()
+{
+    log("=================================================="); //separate runs in the log file
+    log("Working directory: ", std.file.getcwd);
+    
+    immutable localVersion = get_version;
+    immutable remoteVersion = get_remote_version;
+    
+    if(remoteVersion == null)
+        fatal("Remote version is missing?!");
+    
+    log("Local version: ", localVersion == null ? "NONE" : remoteVersion);
+    log("Remote version: ", remoteVersion);
+    
+    if(localVersion == remoteVersion)
+    {
+        info("Up to date!");
+        
+        return;
+    }
+    else
+        info("Update required");
+    
+    do_update;
+    write_version(remoteVersion);
+    info("Done!");
+}
+
+int main()
 {
     debug
         LogLevel logLevel = LogLevel.all;
@@ -79,9 +111,13 @@ void main()
     sharedLog = logger;
     
     try
-        do_update;
+        update_check;
     catch(Throwable err)
     {
         criticalf("Uncaught exception:\n%s", err.toString);
+        
+        return 1;
     }
+    
+    return 0;
 }
