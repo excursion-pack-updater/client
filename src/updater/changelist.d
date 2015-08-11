@@ -1,5 +1,7 @@
 module updater.data;
 
+import updater.http;
+
 enum Operation
 {
     ADD,

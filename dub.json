@@ -1,8 +1,9 @@
 {
-	"name": "pack_version_check",
+	"name": "pack_sync",
 	"description": "A minimal D application.",
 	"copyright": "Copyright © 2015, Steven",
 	"authors": ["Steven"],
+    "targetType": "executable",
     "libs": ["curl"],
     "stringImportPaths": ["config"],
 	"dependencies": {

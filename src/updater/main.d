@@ -1,57 +1,87 @@
 module updater.main;
 
-import std.array;
-import std.net.curl;
+import std.datetime;
+import std.experimental.logger;
 import std.stdio;
 import std.string;
+static import std.file;
 
-string get_config(string name)()
-{
-    return import(name ~ ".txt").strip();
-}
+import updater;
+import updater.http;
 
-string get_version()
+enum VERSION_FILE = "version.txt";
+
+class SimpleLogger: FileLogger
 {
-    return null;
+    import std.concurrency: Tid;
+    import std.conv: to;
+    import std.format: formattedWrite;
+    
+    this(File file, const LogLevel lv) @safe
+    {
+        super(file, lv);
+    }
+    
+    override protected void beginLogMsg(
+        string,
+        int,
+        string,
+        string,
+        string,
+        LogLevel level,
+        Tid,
+        SysTime,
+        Logger,
+    ) @safe
+    {
+        formattedWrite(
+            file.lockingTextWriter,
+            "%8s: ",
+            level.to!string.toUpper
+        );
+    }
 }
 
 string get_remote_version()
 {
-    return get(get_config!"version_url").idup.strip();
+    return get(get_config!"version_url").idup.strip;
+}
+
+string get_version()
+{
+    return std.file.readText(VERSION_FILE).strip();
 }
 
 void write_version(string newVersion)
 {
-    
+    std.file.write(VERSION_FILE, newVersion);
 }
 
-void download_zip()
+void do_update()
 {
-    writeln("TODO: download zip");
-    /*ubyte[] buffer;
-    auto request = HTTP(get_config!"zip_url.txt");
-    request.onReceive = 
-        (ubyte[] data)
-        {
-            buffer ~= data;
-            
-            return data.length;
-        }
-    ;
-    
-    request.setAuthentication(
-        get_config!"username.txt",
-        get_config!"password.txt",
-    );
-    request.perform;*/
-}
-
-void update()
-{
-    writeln("TODO: rm mods && unzip pack.zip");
+    info("Checking for updates at ", Clock.currTime);
 }
 
 void main()
 {
-    writeln("Remote version: ", get_remote_version);
+    debug
+        LogLevel logLevel = LogLevel.all;
+    else
+        LogLevel logLevel = LogLevel.info;
+    
+    auto stdoutLogger = new SimpleLogger(stdout, logLevel);
+    auto fileLogger = new FileLogger("update.log", LogLevel.all);
+    auto logger = new MultiLogger(LogLevel.all);
+    
+    logger.insertLogger("stdout", fileLogger);
+    logger.insertLogger("file", stdoutLogger);
+    
+    sharedLog = logger;
+    
+    try
+        do_update;
+    catch(Throwable err)
+    {
+        criticalf("Uncaught exception:\n%s", err.toString);
+    }
 }
