@@ -6,8 +6,9 @@ import std.stdio;
 import std.string;
 static import std.file;
 
-import updater;
+import updater.changelist;
 import updater.http;
+import updater;
 
 enum VERSION_FILE = "version.txt";
 
@@ -60,10 +61,16 @@ void write_version(string newVersion)
     std.file.write(VERSION_FILE, newVersion);
 }
 
-void do_update()
+void do_update(string localVersion, string remoteVersion)
 {
-    log("<update stuff>");
-    //TODO
+    immutable commitsJson = get(config!"json_url");
+    Change[] changes = commitsJson
+        .parse
+        .calculate_changes(localVersion, remoteVersion)
+    ;
+    
+    foreach(change; changes)
+        infof("%s %s", change.operation, change.filename);
 }
 
 void update_check()
@@ -89,8 +96,8 @@ void update_check()
     else
         info("Update required");
     
-    do_update;
-    write_version(remoteVersion);
+    do_update(localVersion, remoteVersion);
+    //write_version(remoteVersion); //TODO: uncomment
     info("Done!");
 }
 
