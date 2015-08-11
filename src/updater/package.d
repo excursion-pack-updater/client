@@ -10,16 +10,16 @@ struct Authentication
     string password;
 }
 
-string get_config(string filename)()
+template config(string filename)
 {
     static assert(filename != null, "Attempting to get null config!");
     
-    return import(filename ~ ".txt").strip;
+    enum config = import(filename ~ ".txt").strip;
 }
 
 Authentication get_authentication(string filename)()
 {
-    string data = get_config!filename;
+    string data = config!filename;
     auto parts = data.split("=");
     
     return Authentication(

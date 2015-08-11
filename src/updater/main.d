@@ -44,7 +44,7 @@ class SimpleLogger: FileLogger
 
 string get_remote_version()
 {
-    return get(get_config!"version_url").strip;
+    return get(config!"version_url").strip;
 }
 
 string get_version()
