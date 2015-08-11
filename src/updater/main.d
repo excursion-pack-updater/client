@@ -1,5 +1,7 @@
 module updater.main;
 
+import std.algorithm;
+import std.array;
 import std.datetime;
 import std.experimental.logger;
 import std.file;
@@ -66,6 +68,28 @@ void write_version(string newVersion)
 }
 
 /++
+    Filters erroneous delete operations
++/
+Change[] filter_bogus(Change[] changes)
+{
+    static bool valid(Change c)
+    {
+        if(c.operation != Operation.DELETE)
+            return true;
+        
+        if(!c.filename.exists)
+            return false;
+        
+        return true;
+    }
+    
+    return changes
+        .filter!valid
+        .array
+    ;
+}
+
+/++
     Perform update operations
 +/
 void do_update(string localVersion, string remoteVersion)
@@ -74,10 +98,24 @@ void do_update(string localVersion, string remoteVersion)
     Change[] changes = commitsJson
         .parse
         .calculate_changes(localVersion, remoteVersion)
+        .filter_bogus
     ;
     
     foreach(change; changes)
-        infof("%s %s", change.operation, change.filename);
+    {
+        final switch(change.operation) with(Operation)
+        {
+            case DOWNLOAD:
+                info("download ", change.filename);
+                
+                break;
+            case DELETE:
+                info("Deleting ", change.filename);
+                change.filename.remove;
+                
+                break;
+        }
+    }
 }
 
 /++
