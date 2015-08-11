@@ -2,23 +2,27 @@ module updater.main;
 
 import std.datetime;
 import std.experimental.logger;
-import std.stdio;
+import std.file;
 import std.string;
-static import std.file;
+static import std.stdio;
 
 import updater.changelist;
 import updater.http;
 import updater;
 
+///Where the version hash is stored
 enum VERSION_FILE = "version.txt";
 
+/++
+    Logger with simple formatting
++/
 class SimpleLogger: FileLogger
 {
     import std.concurrency: Tid;
     import std.conv: to;
     import std.format: formattedWrite;
     
-    this(File file, const LogLevel lv) @safe
+    this(std.stdio.File file, const LogLevel lv) @safe
     {
         super(file, lv);
     }
@@ -50,17 +54,20 @@ string get_remote_version()
 
 string get_version()
 {
-    if(!std.file.exists(VERSION_FILE))
+    if(!exists(VERSION_FILE))
         return null;
     
-    return std.file.readText(VERSION_FILE).strip;
+    return readText(VERSION_FILE).strip;
 }
 
 void write_version(string newVersion)
 {
-    std.file.write(VERSION_FILE, newVersion);
+    write(VERSION_FILE, newVersion);
 }
 
+/++
+    Perform update operations
++/
 void do_update(string localVersion, string remoteVersion)
 {
     immutable commitsJson = get(config!"json_url");
@@ -73,10 +80,15 @@ void do_update(string localVersion, string remoteVersion)
         infof("%s %s", change.operation, change.filename);
 }
 
+/++
+    Determine if an update is necessary and, if so, run an update
++/
 void update_check()
 {
+    immutable workingDirectory = getcwd;
+    
     log("=================================================="); //separate runs in the log file
-    log("Working directory: ", std.file.getcwd);
+    log("Working directory: ", workingDirectory);
     
     immutable localVersion = get_version;
     immutable remoteVersion = get_remote_version;
@@ -96,7 +108,9 @@ void update_check()
     else
         info("Update required");
     
+    chdir("minecraft");
     do_update(localVersion, remoteVersion);
+    chdir(workingDirectory);
     //write_version(remoteVersion); //TODO: uncomment
     info("Done!");
 }
@@ -108,7 +122,7 @@ int main()
     else
         LogLevel logLevel = LogLevel.info;
     
-    auto stdoutLogger = new SimpleLogger(stdout, logLevel);
+    auto stdoutLogger = new SimpleLogger(std.stdio.stdout, logLevel);
     auto fileLogger = new FileLogger("update.log", LogLevel.all);
     auto logger = new MultiLogger(LogLevel.all);
     
