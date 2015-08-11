@@ -23,7 +23,7 @@ Authentication get_authentication(string filename)()
     auto parts = data.split("=");
     
     return Authentication(
-        parts.takeOne,
+        parts.takeOne.front,
         parts.dropOne.join("=")
     );
 }

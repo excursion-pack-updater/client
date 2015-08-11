@@ -1,6 +1,9 @@
 module updater.http;
 
+import std.experimental.logger;
 import std.net.curl;
+import std.stdio;
+import std.string;
 
 import updater;
 
@@ -9,23 +12,48 @@ import updater;
 +/
 void download(string authFile = null)(string url, string destination)
 {
-    //TODO
-    /*ubyte[] buffer;
-    auto request = HTTP(get_config!"zip_url.txt");
-    request.onReceive = 
+    info("Downloading ", url, " to ", destination);
+    
+    auto output = File(destination, "wb");
+    auto request = HTTP(url);
+    int lastPercentage = -1;
+    request.onReceive =
         (ubyte[] data)
         {
-            buffer ~= data;
+            output.rawWrite(data);
             
             return data.length;
         }
     ;
+    request.onProgress =
+        (size_t total, size_t current, size_t _, size_t __)
+        {
+            if(total == 0)
+                total = 1;
+            
+            int percentage = cast(int)(
+                (current / cast(real)total) * 100
+            );
+            
+            if(percentage != lastPercentage)
+                info(
+                    "    %3d%%".format(percentage) //infof screws this up for some reason
+                );
+            
+            lastPercentage = percentage;
+            
+            return 0;
+        }
+    ;
     
-    request.setAuthentication(
-        get_config!"username.txt",
-        get_config!"password.txt",
-    );
-    request.perform;*/
+    static if(authFile != null)
+    {
+        auto auth = get_authentication!authFile;
+        
+        request.setAuthentication(auth.username, auth.password);
+    }
+    
+    request.perform;
 }
 
 /++
@@ -33,6 +61,8 @@ void download(string authFile = null)(string url, string destination)
 +/
 string get(string authFile = null)(string url)
 {
+    info("Fetching ", url);
+    
     ubyte[] buffer;
     auto request = HTTP(url);
     request.onReceive = 
