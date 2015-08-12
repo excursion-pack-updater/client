@@ -16,33 +16,12 @@ void download(string authFile = null)(string url, string destination)
     
     auto output = File(destination, "wb");
     auto request = HTTP(url);
-    int lastPercentage = -1;
     request.onReceive =
         (ubyte[] data)
         {
             output.rawWrite(data);
             
             return data.length;
-        }
-    ;
-    request.onProgress =
-        (size_t total, size_t current, size_t _, size_t __)
-        {
-            if(total == 0)
-                total = 1;
-            
-            int percentage = cast(int)(
-                (current / cast(real)total) * 100
-            );
-            
-            if(percentage != lastPercentage)
-                info(
-                    "    %3d%%".format(percentage) //infof screws this up for some reason
-                );
-            
-            lastPercentage = percentage;
-            
-            return 0;
         }
     ;
     
