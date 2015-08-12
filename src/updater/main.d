@@ -163,6 +163,9 @@ void update_check()
     else
         info("Update required");
     
+    if(!"minecraft".exists)
+        mkdir("minecraft");
+    
     chdir("minecraft");
     do_update(localVersion, remoteVersion);
     chdir(workingDirectory);
