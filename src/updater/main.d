@@ -140,10 +140,8 @@ void do_update(string localVersion, string remoteVersion)
 +/
 void update_check()
 {
-    immutable workingDirectory = getcwd;
-    
     log("=================================================="); //separate runs in the log file
-    log("Working directory: ", workingDirectory);
+    log("Working directory: ", getcwd);
     
     immutable localVersion = get_version;
     immutable remoteVersion = get_remote_version;
@@ -163,13 +161,8 @@ void update_check()
     else
         info("Update required");
     
-    if(!"minecraft".exists)
-        mkdir("minecraft");
-    
-    chdir("minecraft");
     do_update(localVersion, remoteVersion);
-    chdir(workingDirectory);
-    //write_version(remoteVersion); //TODO: uncomment
+    write_version(remoteVersion);
     info("Done!");
 }
 
