@@ -5,6 +5,7 @@ import std.array;
 import std.datetime;
 import std.experimental.logger;
 import std.file;
+import std.path;
 import std.string;
 static import std.stdio;
 
@@ -95,18 +96,34 @@ Change[] filter_bogus(Change[] changes)
 void do_update(string localVersion, string remoteVersion)
 {
     immutable commitsJson = get(config!"json_url");
-    Change[] changes = commitsJson
+    immutable changes = commitsJson
         .parse
         .calculate_changes(localVersion, remoteVersion)
         .filter_bogus
+        .idup
     ;
+    bool[string] createdDirectories;
     
     foreach(change; changes)
     {
         final switch(change.operation) with(Operation)
         {
             case DOWNLOAD:
-                info("download ", change.filename);
+                immutable directory = change.filename.dirName;
+                auto entry = directory in createdDirectories;
+                
+                if(!entry)
+                {
+                    log("mkdir -p ", directory);
+                    directory.mkdirRecurse;
+                    
+                    createdDirectories[directory] = true;
+                }
+                
+                download!"cgit"(
+                    config!"repo_base" ~ change.filename,
+                    change.filename,
+                );
                 
                 break;
             case DELETE:
