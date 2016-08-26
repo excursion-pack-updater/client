@@ -1,0 +1,4 @@
+name "pack_sync"
+targetType "executable"
+libs "curl"
+stringImportPaths "config"
