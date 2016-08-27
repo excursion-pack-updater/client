@@ -10,8 +10,8 @@ import updater.http;
 
 enum Operation
 {
-    DOWNLOAD,
-    DELETE,
+    download,
+    remove,
 }
 
 struct Change
@@ -40,13 +40,13 @@ Commit[] parse(string jsonSrc)
         
         foreach(update; value["download"].array)
             commit.changes ~= Change(
-                Operation.DOWNLOAD,
+                Operation.download,
                 update.str
             );
         
         foreach(update; value["delete"].array)
             commit.changes ~= Change(
-                Operation.DELETE,
+                Operation.remove,
                 update.str
             );
         
@@ -59,7 +59,7 @@ Commit[] parse(string jsonSrc)
 /++
     Determines what operations need to happen to update from localVersion to remoteVersion.
 +/
-Change[] calculate_changes(Commit[] commits, string localVersion, string remoteVersion)
+Change[] calculateChanges(Commit[] commits, string localVersion, string remoteVersion)
 {
     Operation[string] result;
     

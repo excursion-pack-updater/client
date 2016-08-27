@@ -14,7 +14,7 @@ import updater.http;
 import updater;
 
 ///Where the version hash is stored
-enum VERSION_FILE = "version.txt";
+enum versionFile = "version.txt";
 
 /++
     Logger with simple formatting
@@ -50,32 +50,32 @@ class SimpleLogger: FileLogger
     }
 }
 
-string get_remote_version()
+string getRemoteVersion()
 {
     return get(config!"version_url").strip;
 }
 
-string get_version()
+string getLocalVersion()
 {
-    if(!exists(VERSION_FILE))
+    if(!exists(versionFile))
         return null;
     
-    return readText(VERSION_FILE).strip;
+    return readText(versionFile).strip;
 }
 
-void write_version(string newVersion)
+void writeVersion(string newVersion)
 {
-    write(VERSION_FILE, newVersion);
+    write(versionFile, newVersion);
 }
 
 /++
     Filters erroneous delete operations
 +/
-Change[] filter_bogus(Change[] changes)
+Change[] filterBogus(Change[] changes)
 {
     static bool valid(Change c)
     {
-        if(c.operation != Operation.DELETE)
+        if(c.operation != Operation.remove)
             return true;
         
         if(!c.filename.exists)
@@ -93,22 +93,22 @@ Change[] filter_bogus(Change[] changes)
 /++
     Perform update operations
 +/
-void do_update(string localVersion, string remoteVersion)
+void doUpdate(string localVersion, string remoteVersion)
 {
     immutable commitsJson = get(config!"json_url");
     immutable changes = commitsJson
         .parse
-        .calculate_changes(localVersion, remoteVersion)
-        .filter_bogus
+        .calculateChanges(localVersion, remoteVersion)
+        .filterBogus
         .idup
     ;
     bool[string] createdDirectories;
     
     foreach(change; changes)
     {
-        final switch(change.operation) with(Operation)
+        final switch(change.operation)
         {
-            case DOWNLOAD:
+            case Operation.download:
                 immutable directory = change.filename.dirName;
                 auto entry = directory in createdDirectories;
                 
@@ -126,7 +126,7 @@ void do_update(string localVersion, string remoteVersion)
                 );
                 
                 break;
-            case DELETE:
+            case Operation.remove:
                 info("Deleting ", change.filename);
                 change.filename.remove;
                 
@@ -138,13 +138,13 @@ void do_update(string localVersion, string remoteVersion)
 /++
     Determine if an update is necessary and, if so, run an update
 +/
-void update_check()
+void updateCheck()
 {
     log("=================================================="); //separate runs in the log file
     log("Working directory: ", getcwd);
     
-    immutable localVersion = get_version;
-    immutable remoteVersion = get_remote_version;
+    immutable localVersion = getLocalVersion;
+    immutable remoteVersion = getRemoteVersion;
     
     if(remoteVersion == null)
         fatal("Remote version is missing?!");
@@ -161,8 +161,8 @@ void update_check()
     else
         info("Update required");
     
-    do_update(localVersion, remoteVersion);
-    write_version(remoteVersion);
+    doUpdate(localVersion, remoteVersion);
+    writeVersion(remoteVersion);
     info("Done!");
 }
 
@@ -183,7 +183,7 @@ int main()
     sharedLog = logger;
     
     try
-        update_check;
+        updateCheck;
     catch(Throwable err)
     {
         criticalf("Uncaught exception:\n%s", err.toString);

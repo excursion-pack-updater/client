@@ -27,7 +27,7 @@ void download(string authFile = null)(string url, string destination)
     
     static if(authFile != null)
     {
-        auto auth = get_authentication!authFile;
+        auto auth = getAuthentication!authFile;
         
         request.setAuthentication(auth.username, auth.password);
     }
@@ -55,7 +55,7 @@ string get(string authFile = null)(string url)
     
     static if(authFile != null)
     {
-        auto auth = get_authentication!authFile;
+        auto auth = getAuthentication!authFile;
         
         request.setAuthentication(auth.username, auth.password);
     }

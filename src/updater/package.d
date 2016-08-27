@@ -17,7 +17,7 @@ template config(string filename)
     enum config = import(filename ~ ".txt").strip;
 }
 
-Authentication get_authentication(string filename)()
+Authentication getAuthentication(string filename)()
 {
     string data = config!filename;
     auto parts = data.split("=");
