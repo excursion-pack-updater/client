@@ -15,18 +15,18 @@ immutable Operation[string] operationMapping;
 static this()
 {
     auto mapping = [
-        "A": Operation.ADD,
-        "M": Operation.MODIFY,
-        "D": Operation.DELETE,
+        "A": Operation.add,
+        "M": Operation.modify,
+        "D": Operation.remove,
     ];
     operationMapping = mapping.assumeUnique;
 }
 
 enum Operation
 {
-    ADD,
-    MODIFY,
-    DELETE,
+    add,
+    modify,
+    remove,
 }
 
 struct Change
@@ -59,7 +59,7 @@ string git(string[] args)
     return output;
 }
 
-Commit[] parse_commits(string[] shas)
+Commit[] parseCommits(string[] shas)
 {
     Commit[] result;
 
@@ -77,11 +77,11 @@ Commit[] parse_commits(string[] shas)
             if(change[0].startsWith("R")) //rename
             {
                 commit.changes ~= Change(
-                    Operation.DELETE,
+                    Operation.remove,
                     change[1],
                 );
                 commit.changes ~= Change(
-                    Operation.ADD,
+                    Operation.add,
                     change[2],
                 );
                 
@@ -100,7 +100,7 @@ Commit[] parse_commits(string[] shas)
     return result;
 }
 
-JSONValue generate_json(Commit[] commits)
+JSONValue generateJson(Commit[] commits)
 {
     JSONValue[] result;
 
@@ -113,7 +113,7 @@ JSONValue generate_json(Commit[] commits)
                     commit
                         .changes
                         .filter!(
-                            c => c.operation == Operation.ADD || c.operation == Operation.MODIFY
+                            c => c.operation == Operation.add || c.operation == Operation.modify
                         )
                         .map!(c => JSONValue(c.filename))
                         .array
@@ -122,7 +122,7 @@ JSONValue generate_json(Commit[] commits)
                     commit
                         .changes
                         .filter!(
-                            c => c.operation == Operation.DELETE
+                            c => c.operation == Operation.remove
                         )
                         .map!(c => JSONValue(c.filename))
                         .array
@@ -137,8 +137,8 @@ void main()
 {
     string branch = git(["rev-parse", "--abbrev-ref", "HEAD"]);
     string[] shas = git(["rev-list", branch]).split("\n");
-    Commit[] commits = shas.parse_commits;
-    JSONValue json = commits.generate_json;
+    Commit[] commits = shas.parseCommits;
+    JSONValue json = commits.generateJson;
 
     std.file.write("changes.json", json.toString);
 }
