@@ -78,24 +78,42 @@ Commit[] parseCommits(string[] shas)
         {
             switch(change[0][0])
             {
+                //for rename/copy, operation mnemonic is followed by similarity percentage
                 case 'R': //rename
-                case 'C': //copy
                     if(change[0].drop(1) != "100")
                     {
-                        //for rename/copy, operation mnemonic is followed by percentage of similarity
-                        //if it's not 100% we should just re-download
-                        
-                        change[0] = "M";
-                        
-                        goto default;
-                    }
-                    else
+                        //if it's not 100%, we must download the new file
                         commit.changes ~= Change(
-                            change[0][0] == 'R' ? Operation.rename : Operation.copy,
+                            Operation.remove,
+                            change[1],
+                        );
+                        commit.changes ~= Change(
+                            Operation.add,
+                            change[2],
+                        );
+                        
+                        continue;
+                    }
+                    else //otherwise a rename can be safely performed
+                        commit.changes ~= Change(
+                            Operation.rename,
                             "%s\n%s".format(change[1], change[2]),
                         );
                     
-                    break;
+                    continue;
+                case 'C': //copy
+                    if(change[0].drop(1) != "100") //here, if it's not 100% we need to download
+                        commit.changes ~= Change(
+                            Operation.add,
+                            change[2],
+                        );
+                    else //again, otherwise we can just copy
+                        commit.changes ~= Change(
+                            Operation.copy,
+                            "%s\n%s".format(change[1], change[2]),
+                        );
+                    
+                    continue;
                 default:
                     auto ptr = change[0] in operationMapping;
                     
