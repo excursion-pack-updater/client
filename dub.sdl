@@ -1,7 +1,5 @@
 name "pack_sync"
 targetType "executable"
-libs "curl"
-stringImportPaths "config"
 
 configuration "syncer" {
     libs "curl"
@@ -11,4 +9,5 @@ configuration "syncer" {
 
 configuration "generator" {
     excludedSourceFiles "src/updater/main.d"
+    targetName "generate_changelist"
 }

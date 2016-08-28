@@ -9,3 +9,5 @@ __dummy.html
 /dub.selections.json
 /config/*
 /minecraft
+/pack_sync
+/generate_changelist
