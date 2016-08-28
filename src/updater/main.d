@@ -3,10 +3,13 @@ module updater.main;
 import std.algorithm;
 import std.array;
 import std.datetime;
+import std.digest.crc;
 import std.experimental.logger;
 import std.file;
+import std.json;
 import std.path;
 import std.string;
+import std.typecons;
 static import std.stdio;
 
 import updater.changelist;
@@ -95,12 +98,26 @@ Change[] filterBogus(Change[] changes)
 +/
 void doUpdate(string localVersion, string remoteVersion)
 {
-    immutable commitsJson = get(config!"json_url");
-    immutable changes = commitsJson
+    JSONValue json = config!"json_url"
+        .get
+        .parseJSON
+    ;
+    immutable changes = json["changes"]
         .parse
         .calculateChanges(localVersion, remoteVersion)
         .filterBogus
         .idup
+    ;
+    string[string] crcs = json["crcs"]
+        .object
+        .byPair
+        .map!(
+            pair => tuple(
+                pair[0],
+                pair[1].str
+            )
+        )
+        .assocArray
     ;
     bool[string] createdDirectories;
     
@@ -118,6 +135,23 @@ void doUpdate(string localVersion, string remoteVersion)
                     directory.mkdirRecurse;
                     
                     createdDirectories[directory] = true;
+                }
+                
+                if(change.filename.exists)
+                {
+                    string crc = change
+                        .filename
+                        .read
+                        .crc32Of
+                        .crcHexString
+                    ;
+                    
+                    if(crcs[change.filename] == crc)
+                    {
+                        infof("Skipping download of %s, file exists and crcs match", change.filename);
+                        
+                        continue;
+                    }
                 }
                 
                 download!"cgit"(

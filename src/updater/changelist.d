@@ -29,9 +29,8 @@ struct Commit
 /++
     Parses JSON into a list of commits.
 +/
-Commit[] parse(string jsonSrc)
+Commit[] parse(JSONValue json)
 {
-    JSONValue json = jsonSrc.parseJSON;
     Commit[] result;
     
     foreach(value; json.array)
