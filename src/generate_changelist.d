@@ -27,6 +27,8 @@ enum Operation
     add,
     modify,
     remove,
+    rename,
+    copy,
 }
 
 struct Change
@@ -74,24 +76,37 @@ Commit[] parseCommits(string[] shas)
 
         foreach(change; changes)
         {
-            if(change[0].startsWith("R")) //rename
+            switch(change[0][0])
             {
-                commit.changes ~= Change(
-                    Operation.remove,
-                    change[1],
-                );
-                commit.changes ~= Change(
-                    Operation.add,
-                    change[2],
-                );
-                
-                continue;
+                case 'R': //rename
+                case 'C': //copy
+                    if(change[0].drop(1) != "100")
+                    {
+                        //for rename/copy, operation mnemonic is followed by percentage of similarity
+                        //if it's not 100% we should just re-download
+                        
+                        change[0] = "M";
+                        
+                        goto default;
+                    }
+                    else
+                        commit.changes ~= Change(
+                            change[0][0] == 'R' ? Operation.rename : Operation.copy,
+                            "%s\n%s".format(change[1], change[2]),
+                        );
+                    
+                    break;
+                default:
+                    auto ptr = change[0] in operationMapping;
+                    
+                    if(ptr is null)
+                        throw new Exception("Unknown operation `%s`".format(change[0]));
+                    
+                    commit.changes ~= Change(
+                        operationMapping[change[0]],
+                        change[1]
+                    );
             }
-            
-            commit.changes ~= Change(
-                operationMapping[change[0]],
-                change[1]
-            );
         }
 
         result ~= commit;
@@ -121,10 +136,22 @@ JSONValue generateJson(Commit[] commits)
                 "delete": JSONValue(
                     commit
                         .changes
-                        .filter!(
-                            c => c.operation == Operation.remove
-                        )
+                        .filter!(c => c.operation == Operation.remove)
                         .map!(c => JSONValue(c.filename))
+                        .array
+                ),
+                "rename": JSONValue(
+                    commit
+                        .changes
+                        .filter!(c => c.operation == Operation.rename)
+                        .map!(c => JSONValue([c.filename.split("\n")]))
+                        .array
+                ),
+                "copy": JSONValue(
+                    commit
+                        .changes
+                        .filter!(c => c.operation == Operation.copy)
+                        .map!(c => JSONValue([c.filename.split("\n")]))
                         .array
                 ),
             ]
