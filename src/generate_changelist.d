@@ -144,7 +144,7 @@ JSONValue generateJson(Commit[] commits)
                     commit
                         .changes
                         .filter!(c => c.operation == Operation.rename)
-                        .map!(c => JSONValue([c.filename.split("\n")]))
+                        .map!(c => JSONValue(c.filename.split("\n")))
                         .array
                 ),
                 "copy": JSONValue(
