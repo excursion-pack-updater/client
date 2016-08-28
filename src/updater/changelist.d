@@ -5,6 +5,7 @@ import std.array;
 import std.experimental.logger;
 import std.json;
 import std.range;
+import std.string;
 
 import updater.http;
 
@@ -12,6 +13,8 @@ enum Operation
 {
     download,
     remove,
+    rename,
+    copy,
 }
 
 struct Change
@@ -22,6 +25,7 @@ struct Change
 
 struct Commit
 {
+    int index;
     string sha;
     Change[] changes = null;
 }
@@ -36,7 +40,7 @@ Commit[] parse(string jsonSrc)
     
     foreach(value; json.array)
     {
-        auto commit = Commit(value["sha"].str);
+        auto commit = Commit(cast(int)value["index"].integer, value["sha"].str);
         
         foreach(update; value["download"].array)
             commit.changes ~= Change(
@@ -48,6 +52,18 @@ Commit[] parse(string jsonSrc)
             commit.changes ~= Change(
                 Operation.remove,
                 update.str
+            );
+        
+        foreach(update; value["rename"].array)
+            commit.changes ~= Change(
+                Operation.rename,
+                "%s\n%s".format(update[0].str, update[1].str)
+            );
+        
+        foreach(update; value["copy"].array)
+            commit.changes ~= Change(
+                Operation.copy,
+                "%s\n%s".format(update[0].str, update[1].str)
             );
         
         result ~= commit;
@@ -70,10 +86,29 @@ Change[] calculateChanges(Commit[] commits, string localVersion, string remoteVe
             .array
         ;
     
+    commits = commits
+        .sort!"a.index < b.index"
+        .array
+    ;
+    
+    info("commits: ", commits);
+    
     foreach(commit; commits)
     {
         foreach(change; commit.changes)
+        {
+            infof("change on `%s`: %s", change.filename.replace("\n", "\\n"), change.operation);
+            
+            if(change.operation == Operation.rename)
+            {
+                string[] files = change.filename.split("\n");
+                
+                infof("removing `%s`", files[0]);
+                result.remove(files[0]);
+            }
+            
             result[change.filename] = change.operation;
+        }
         
         if(commit.sha == remoteVersion)
             break;

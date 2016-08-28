@@ -102,11 +102,19 @@ void doUpdate(string localVersion, string remoteVersion)
         .filterBogus
         .idup
     ;
+    
+    infof("changes: `%s`", changes);
+    
     bool[string] createdDirectories;
+    
+    bool trick = true;
+    
+    if(trick)
+        return;
     
     foreach(change; changes)
     {
-        final switch(change.operation)
+        switch(change.operation)
         {
             case Operation.download:
                 immutable directory = change.filename.dirName;
@@ -131,6 +139,22 @@ void doUpdate(string localVersion, string remoteVersion)
                 change.filename.remove;
                 
                 break;
+            case Operation.rename:
+                string[] files = change.filename.split("\n");
+                
+                infof("Renaming `%s` => `%s`", files[0], files[1]);
+                rename(files[0], files[1]);
+                
+                break;
+            case Operation.copy:
+                string[] files = change.filename.split("\n");
+                
+                infof("Copying `%s` => `%s`", files[0], files[1]);
+                copy(files[0], files[1]);
+                
+                break;
+            default:
+                assert(false);
         }
     }
 }
@@ -138,13 +162,15 @@ void doUpdate(string localVersion, string remoteVersion)
 /++
     Determine if an update is necessary and, if so, run an update
 +/
-void updateCheck()
+void updateCheck(string[] versions)
 {
     log("=================================================="); //separate runs in the log file
     log("Working directory: ", getcwd);
     
-    immutable localVersion = getLocalVersion;
-    immutable remoteVersion = getRemoteVersion;
+    //immutable localVersion = getLocalVersion;
+    //immutable remoteVersion = getRemoteVersion;
+    immutable localVersion = versions[0];
+    immutable remoteVersion = versions[1];
     
     if(remoteVersion == null)
         fatal("Remote version is missing?!");
@@ -166,7 +192,7 @@ void updateCheck()
     info("Done!");
 }
 
-int main()
+int main(string[] args)
 {
     debug
         LogLevel logLevel = LogLevel.all;
@@ -182,8 +208,15 @@ int main()
     
     sharedLog = logger;
     
+    if(args.length < 3)
+    {
+        errorf("args pls `%s`", args);
+        
+        return 1;
+    }
+    
     try
-        updateCheck;
+        updateCheck(args[1 .. 3]);
     catch(Throwable err)
     {
         criticalf("Uncaught exception:\n%s", err.toString);
