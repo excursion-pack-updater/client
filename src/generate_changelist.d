@@ -2,13 +2,14 @@ module generate_changelist;
 
 import std.algorithm;
 import std.array;
+import std.digest.crc;
 import std.exception;
 import std.json;
 import std.process;
 import std.range;
 import std.stdio;
 import std.string;
-static import std.file;
+import std.file: write, read;
 
 immutable Operation[string] operationMapping;
 
@@ -129,8 +130,23 @@ JSONValue generateJson(Commit[] commits)
                 ),
             ]
         );
-
-    return JSONValue(result);
+    
+    string[] allFiles = git(["ls-files"]).split("\n");
+    string[string] crcs;
+    
+    foreach(file; allFiles)
+        crcs[file] = file
+            .read
+            .crc32Of
+            .crcHexString
+        ;
+    
+    return JSONValue(
+        [
+            "changes": JSONValue(result),
+            "crcs": JSONValue(crcs),
+        ]
+    );
 }
 
 void main()
@@ -140,5 +156,5 @@ void main()
     Commit[] commits = shas.parseCommits;
     JSONValue json = commits.generateJson;
 
-    std.file.write("changes.json", json.toString);
+    write("changes.json", json.toString);
 }
