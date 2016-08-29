@@ -8,6 +8,18 @@ import std.uri;
 
 import updater;
 
+HTTP request;
+
+shared static this()
+{
+    request = HTTP(null);
+}
+
+shared static ~this()
+{
+    request.shutdown;
+}
+
 /++
     Downloads the file at url and saves it to destination.
 +/
@@ -18,7 +30,7 @@ void download(string authFile = null)(string url, string destination)
     info("Downloading ", url, " to ", destination);
     
     auto output = File(destination, "wb");
-    auto request = HTTP(url);
+    request.url = url;
     request.onReceive =
         (ubyte[] data)
         {
@@ -48,7 +60,7 @@ string get(string authFile = null)(string url)
     info("Fetching ", url);
     
     ubyte[] buffer;
-    auto request = HTTP(url);
+    request.url = url;
     request.onReceive = 
         (ubyte[] data)
         {
