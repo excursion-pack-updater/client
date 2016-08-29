@@ -4,6 +4,7 @@ import std.experimental.logger;
 import std.net.curl;
 import std.stdio;
 import std.string;
+import std.uri;
 
 import updater;
 
@@ -12,6 +13,8 @@ import updater;
 +/
 void download(string authFile = null)(string url, string destination)
 {
+    url = encode(url);
+    
     info("Downloading ", url, " to ", destination);
     
     auto output = File(destination, "wb");
@@ -40,6 +43,8 @@ void download(string authFile = null)(string url, string destination)
 +/
 string get(string authFile = null)(string url)
 {
+    url = encode(url);
+    
     info("Fetching ", url);
     
     ubyte[] buffer;
