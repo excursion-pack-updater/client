@@ -1,4 +1,4 @@
-module updater.main;
+module epu.client.main;
 
 import std.algorithm;
 import std.array;
@@ -12,9 +12,9 @@ import std.string;
 import std.typecons;
 static import std.stdio;
 
-import updater.changelist;
-import updater.http;
-import updater;
+import epu.client.changelist;
+import epu.client.http;
+import epu.client;
 
 ///Where the version hash is stored
 enum versionFile = "version.txt";

@@ -1,4 +1,4 @@
-module updater;
+module epu.client;
 
 import std.algorithm;
 import std.range;

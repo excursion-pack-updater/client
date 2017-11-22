@@ -1,4 +1,4 @@
-module updater.http;
+module epu.client.http;
 
 import std.experimental.logger;
 import std.net.curl;
@@ -6,7 +6,7 @@ import std.stdio;
 import std.string;
 import std.uri;
 
-import updater;
+import epu.client;
 
 HTTP request;
 

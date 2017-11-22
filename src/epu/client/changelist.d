@@ -1,12 +1,10 @@
-module updater.changelist;
+module epu.client.changelist;
 
 import std.algorithm;
 import std.array;
 import std.experimental.logger;
 import std.json;
 import std.range;
-
-import updater.http;
 
 enum Operation
 {
