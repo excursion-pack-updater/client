@@ -1,4 +1,4 @@
-module epu.client.changelist;
+module epu.changelist;
 
 import std.algorithm;
 import std.array;

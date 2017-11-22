@@ -12,7 +12,7 @@ import std.string;
 import std.typecons;
 static import std.stdio;
 
-import epu.client.changelist;
+import epu.changelist;
 import epu.client.http;
 import epu.client;
 
