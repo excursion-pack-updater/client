@@ -1,13 +1,3 @@
 name "pack_sync"
 targetType "executable"
-
-configuration "syncer" {
-    libs "curl"
-    stringImportPaths "config"
-    excludedSourceFiles "src/generate_changelist.d"
-}
-
-configuration "generator" {
-    excludedSourceFiles "src/updater/main.d"
-    targetName "generate_changelist"
-}
+libs "curl"
