@@ -20,10 +20,25 @@ shared static ~this()
     request.shutdown;
 }
 
+private string encode(string url)
+{
+    import std.algorithm: canFind;
+    
+    //url = std.uri.encode(url);
+    
+    while(url.canFind("//"))
+        url = url.replace("//", "/");
+    
+    url = url.replace("http:/", "http://");
+    url = url.replace("https:/", "https://");
+    
+    return url;
+}
+
 /++
     Downloads the file at url and saves it to destination.
 +/
-void download(string authFile = null)(string url, string destination)
+void download(string url, string destination)
 {
     url = encode(url);
     
@@ -40,20 +55,13 @@ void download(string authFile = null)(string url, string destination)
         }
     ;
     
-    static if(authFile != null)
-    {
-        auto auth = getAuthentication!authFile;
-        
-        request.setAuthentication(auth.username, auth.password);
-    }
-    
     request.perform;
 }
 
 /++
     Retrieves the contents of the file at url and returns it as a string.
 +/
-string get(string authFile = null)(string url)
+string get(string url)
 {
     url = encode(url);
     
@@ -69,13 +77,6 @@ string get(string authFile = null)(string url)
             return data.length;
         }
     ;
-    
-    static if(authFile != null)
-    {
-        auto auth = getAuthentication!authFile;
-        
-        request.setAuthentication(auth.username, auth.password);
-    }
     
     request.perform;
     

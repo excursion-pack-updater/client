@@ -12,7 +12,6 @@ import std.string;
 import std.typecons;
 static import std.stdio;
 
-import epu.changelist;
 import epu.client.http;
 import epu.client;
 
@@ -55,7 +54,7 @@ class SimpleLogger: FileLogger
 
 string getRemoteVersion()
 {
-    return get(config!"version_url").strip;
+    return get(Config.buildURL("/version")).strip;
 }
 
 string getLocalVersion()
@@ -72,100 +71,70 @@ void writeVersion(string newVersion)
 }
 
 /++
-    Filters erroneous delete operations
-+/
-Change[] filterBogus(Change[] changes)
-{
-    static bool valid(Change c)
-    {
-        if(c.operation != Operation.remove)
-            return true;
-        
-        if(!c.filename.exists)
-            return false;
-        
-        return true;
-    }
-    
-    return changes
-        .filter!valid
-        .array
-    ;
-}
-
-/++
     Perform update operations
 +/
 void doUpdate(string localVersion, string remoteVersion)
 {
-    JSONValue json = config!"json_url"
+    JSONValue json = Config.buildURL("/changelist/" ~ localVersion)
         .get
         .parseJSON
     ;
-    immutable changes = json["changes"]
-        .parse
-        .calculateChanges(localVersion, remoteVersion)
-        .filterBogus
+    immutable downloads = json["download"]
+        .array
+        .map!(v => v.str)
+        .array
         .idup
     ;
-    string[string] crcs = json["crcs"]
-        .object
-        .byPair
-        .map!(
-            pair => tuple(
-                pair[0],
-                pair[1].str
-            )
-        )
-        .assocArray
+    immutable deletes = json["delete"]
+        .array
+        .map!(v => v.str)
+        .array
+        .idup
     ;
     bool[string] createdDirectories;
+    string[string] crcs;
     
-    foreach(change; changes)
+    foreach(filename; downloads)
     {
-        final switch(change.operation)
+        import std.uri;
+        
+        immutable directory = filename.dirName;
+        auto entry = directory in createdDirectories;
+        
+        if(!entry)
         {
-            case Operation.download:
-                immutable directory = change.filename.dirName;
-                auto entry = directory in createdDirectories;
-                
-                if(!entry)
-                {
-                    log("mkdir -p ", directory);
-                    directory.mkdirRecurse;
-                    
-                    createdDirectories[directory] = true;
-                }
-                
-                if(change.filename.exists)
-                {
-                    string crc = change
-                        .filename
-                        .read
-                        .crc32Of
-                        .crcHexString
-                    ;
-                    
-                    if(crcs[change.filename] == crc)
-                    {
-                        infof("Skipping download of %s, file exists and crcs match", change.filename);
-                        
-                        continue;
-                    }
-                }
-                
-                download!"cgit"(
-                    config!"repo_base" ~ change.filename,
-                    change.filename,
-                );
-                
-                break;
-            case Operation.remove:
-                info("Deleting ", change.filename);
-                change.filename.remove;
-                
-                break;
+            log("mkdir -p ", directory);
+            directory.mkdirRecurse;
+            
+            createdDirectories[directory] = true;
         }
+        
+        if(filename.exists)
+        {
+            string crc = filename
+                .read
+                .crc32Of
+                .crcHexString
+            ;
+            
+            if(filename in crcs && crcs[filename] == crc)
+            {
+                infof("Skipping download of %s, file exists and crcs match", filename);
+                
+                continue;
+            }
+        }
+        
+        download(
+            Config.buildURL("/get/" ~ encodeComponent(filename)),
+            filename,
+        );
+    }
+    
+    foreach(filename; deletes)
+    {
+        info("Deleting ", filename);
+        filename.remove;
     }
 }
 
@@ -200,7 +169,7 @@ void updateCheck()
     info("Done!");
 }
 
-int main()
+int main(string[] args)
 {
     debug
         LogLevel logLevel = LogLevel.all;
@@ -217,7 +186,11 @@ int main()
     sharedLog = logger;
     
     try
+    {
+        loadConfig(args[0].baseName.withExtension("ini").array);
+        request.addRequestHeader("X-EPU-Key", Config.apiKey);
         updateCheck;
+    }
     catch(Throwable err)
     {
         criticalf("Uncaught exception:\n%s", err.toString);

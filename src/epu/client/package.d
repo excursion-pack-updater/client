@@ -1,29 +1,63 @@
 module epu.client;
 
-import std.algorithm;
-import std.range;
 import std.string;
 
-struct Authentication
+struct Config
 {
-    string username;
-    string password;
+    static string backendURL;
+    static string packID;
+    static string apiKey;
+    
+    static string buildURL(string path)
+    {
+        return "%s/pack/%s/%s".format(backendURL, packID, path);
+    }
 }
 
-template config(string filename)
+void loadConfig(string filename)
 {
-    static assert(filename != null, "Attempting to get null config!");
+    import std.algorithm: map;
+    import std.file;
+    import std.stdio: File;
+    import std.range;
     
-    enum config = import(filename ~ ".txt").strip;
-}
-
-Authentication getAuthentication(string filename)()
-{
-    string data = config!filename;
-    auto parts = data.split("=");
-    
-    return Authentication(
-        parts.takeOne.front,
-        parts.dropOne.join("=")
-    );
+    if(filename.exists)
+        foreach(line; File(filename).byLine.map!(x => x.idup.strip))
+        {
+            if(line.empty)
+                continue;
+            
+            string[] bits = line.split("=");
+            string key = bits[0];
+            string value = bits[1 .. $].join(" ");
+            
+            switch(key)
+            {
+                case "backendURL":
+                    Config.backendURL = value;
+                    
+                    break;
+                case "packID":
+                    Config.packID = value;
+                    
+                    break;
+                case "apiKey":
+                    Config.apiKey = value;
+                    
+                    break;
+                default:
+                    throw new Exception("Unknown config key `%s`".format(key));
+            }
+        }
+    else
+    {
+        filename.write(q"EOF
+backendURL=https://example.com/
+packID=0
+apiKey=00000000000000000000000000000000
+EOF"
+        );
+        
+        throw new Exception("Created example config ini.");
+    }
 }
