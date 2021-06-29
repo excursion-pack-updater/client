@@ -3,7 +3,7 @@ module epu.client.main;
 import std.algorithm;
 import std.array;
 import std.datetime;
-import std.digest.crc;
+import std.digest.sha;
 import std.experimental.logger;
 import std.file;
 import std.json;
@@ -75,6 +75,8 @@ void writeVersion(string newVersion)
 +/
 void doUpdate(string localVersion, string remoteVersion)
 {
+    import std.uni: toLower;
+    
     JSONValue json = Config.buildURL("/changelist/" ~ localVersion)
         .get
         .parseJSON
@@ -91,8 +93,13 @@ void doUpdate(string localVersion, string remoteVersion)
         .array
         .idup
     ;
+    immutable hashes = json["hashes"]
+        .object
+        .byPair
+        .map!(pair => tuple(pair.key, pair.value.str.toLower))
+        .assocArray
+    ;
     bool[string] createdDirectories;
-    string[string] crcs;
     
     foreach(filename; downloads)
     {
@@ -111,17 +118,24 @@ void doUpdate(string localVersion, string remoteVersion)
         
         if(filename.exists)
         {
-            string crc = filename
+            string sha = filename
                 .read
-                .crc32Of
-                .crcHexString
+                .sha1Of
+                .toHexString
+                .idup
+                .toLower
             ;
             
-            if(filename in crcs && crcs[filename] == crc)
+            auto hashptr = filename in hashes;
+            if(hashptr != null)
             {
-                infof("Skipping download of %s, file exists and crcs match", filename);
-                
-                continue;
+                if(*hashptr == sha)
+                {
+                    infof("Skipping download of %s, file exists and hashes match", filename);
+                    continue;
+                }
+                else
+                    warningf("File %s already exists but its hash does not match. It will be overwritten (local %s, remote %s)", filename, sha, *hashptr);
             }
         }
         
