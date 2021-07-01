@@ -1,3 +1,9 @@
 name "pack_sync"
 targetType "executable"
-libs "curl"
+
+libs "curl" platform="windows"
+libs "curl" platform="osx"
+
+# also requires linking against musl
+dflags "--static" platform="linux"
+lflags "/usr/lib/libcurl.a" "--as-needed" "-lnghttp2" "-lssl" "-lcrypto" "-lbrotlidec-static" "-lbrotlicommon-static" "-lz" platform="linux"
