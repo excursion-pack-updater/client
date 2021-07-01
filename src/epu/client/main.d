@@ -185,10 +185,8 @@ void updateCheck()
 
 int main(string[] args)
 {
-    debug
-        LogLevel logLevel = LogLevel.all;
-    else
-        LogLevel logLevel = LogLevel.info;
+    LogLevel logLevel = LogLevel.info;
+    debug logLevel = LogLevel.all;
     
     auto stdoutLogger = new SimpleLogger(std.stdio.stdout, logLevel);
     auto fileLogger = new FileLogger("update.log", LogLevel.all);
@@ -202,7 +200,7 @@ int main(string[] args)
     try
     {
         loadConfig(args[0].baseName.withExtension("ini").array);
-        request.addRequestHeader("X-EPU-Key", Config.apiKey);
+        setAPIKey(Config.apiKey);
         updateCheck;
     }
     catch(Throwable err)
