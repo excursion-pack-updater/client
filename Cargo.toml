@@ -1,0 +1,37 @@
+[package]
+name = "epu_client"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = "debuginfo"
+
+[dependencies]
+env_logger = "0.9"
+log = "0.4"
+serde_json = "1.0"
+sha1 = "0.10"
+
+[dependencies.anyhow]
+version = "1.0"
+features = ["backtrace"]
+
+[dependencies.reqwest]
+version = "0.11"
+features = ["json"]
+
+[dependencies.serde]
+version = "1.0"
+features = ["derive"]
+
+[dependencies.tokio]
+version = "1.22"
+features = [
+	"macros",
+	"net",
+	"rt",
+	"time",
+]
