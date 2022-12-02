@@ -40,7 +40,12 @@ jobs:
         run: |
           cargo clean -p epu_client
           cargo build --release
-          zip -j ${{runner.os}}.zip target/release/epu_client{,.exe}
+          zip -j ${{runner.os}}.zip LICENSE target/release/epu_client{,.exe}
+          
+          # rename license file for clarity
+          zipnote ${{runner.os}}.zip > zipinfo
+          sed -e '/^@ LICENSE/a\' -e '@=epu_client_license.txt' -i zipinfo
+          zipnote -w ${{runner.os}}.zip < zipinfo
       
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
