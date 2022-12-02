@@ -1,0 +1,69 @@
+name: Rust
+
+on:
+  push:
+    branches: ["master"]
+    tags: "*"
+  pull_request:
+    branches: ["master"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  Build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{matrix.os}}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Install dependencies -- Windows
+        if: matrix.os == 'windows-latest'
+        run: choco install zip
+      
+      - name: Cargo cache
+        uses: actions/cache@v3
+        with:
+          key: ${{runner.os}}-cargo-${{hashFiles('Cargo.lock')}}
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/git/db/
+            ~/.cargo/registry/cache/
+            ~/.cargo/registry/index/
+            target/
+      
+      - name: Build
+        shell: bash
+        run: |
+          cargo clean -p epu_client
+          cargo build --release
+          zip -j ${{runner.os}}.zip target/release/epu_client{,.exe}
+      
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{runner.os}}
+          if-no-files-found: error
+          path: ${{runner.os}}.zip
+  
+  Release:
+    if: github.ref_type == 'tag'
+    needs: Build
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+      
+      - name: Upload release
+        uses: softprops/action-gh-release@v1
+        with:
+          fail_on_unmatched_files: true
+          files: |
+            Linux/Linux.zip
+            macOS/macOS.zip
+            Windows/Windows.zip
